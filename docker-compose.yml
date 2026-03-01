@@ -1,0 +1,20 @@
+networks:
+  palladium-net:
+    external: true
+
+services:
+  ckpool:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ckpool-palladium-ckpool:latest
+    container_name: ckpool
+    restart: unless-stopped
+    networks:
+      - palladium-net
+    ports:
+      - "0.0.0.0:3333:3333"  # Stratum standard
+      - "0.0.0.0:4444:4444"  # Stratum high-diff
+    volumes:
+      - ./ckpool.conf:/etc/ckpool/ckpool.conf:ro
+      - ./logs:/var/log/ckpool

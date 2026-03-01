@@ -28,7 +28,115 @@ This project is a fork of [ckpool](https://bitbucket.org/ckolivas/ckpool) by Con
 - **Detailed Statistics**: Per-pool and per-client accurate tracking
 - **Flexible Configuration**: JSON-based configuration with sensible defaults
 
-## Quick Start
+## Docker (with palladium-stack)
+
+This is the recommended setup. The pool runs in a container attached to the `palladium-net` Docker network created by [palladium-stack](https://github.com/palladium-coin/palladium-stack), which already provides the node (`palladiumd`), ElectrumX, and the dashboard.
+
+### Prerequisites
+
+- [palladium-stack](https://github.com/palladium-coin/palladium-stack) running and synced
+- `palladium-net` Docker network active (`docker network ls | grep palladium-net`)
+
+### Configuration
+
+Edit `ckpool.conf` — it is already pre-configured for Docker, only `btcaddress` and the RPC credentials need to be set:
+
+```json
+{
+  "btcd": [{
+    "url": "palladiumd:2332",
+    "auth": "<rpcuser>",
+    "pass": "<rpcpassword>",
+    "notify": true
+  }],
+  "btcaddress": "<your PLM address>",
+  "btcsig": "/mined by ckpool-plm/",
+  "blockpoll": 100,
+  "donation": 2.0,
+  "nonce1length": 4,
+  "nonce2length": 8,
+  "update_interval": 30,
+  "version_mask": "1fffe000",
+  "dropidle": 0,
+  "serverurl": ["0.0.0.0:3333", "0.0.0.0:4444"],
+  "mindiff": 1,
+  "startdiff": 42,
+  "maxdiff": 0,
+  "highdiff": 100000,
+  "zmqblock": "tcp://palladiumd:28332",
+  "logdir": "/var/log/ckpool"
+}
+```
+
+- `btcd.url` / `zmqblock`: use the `palladiumd` hostname (Docker internal DNS, resolves to the node container)
+- `btcaddress`: pool operator's address in solo mode (donation recipient); pool's address in pool mode (block reward recipient)
+- `logdir`: must be `/var/log/ckpool` (absolute) — maps to `./logs/` on the host via the bind mount in `docker-compose.yml`
+- RPC credentials must match `palladium-stack/.palladium/palladium.conf`
+
+### Mining modes
+
+Two modes are supported. Choose based on your use case.
+
+#### Solo mode (default)
+
+Each miner mines directly to their own PLM address. When a block is found, the reward goes entirely to that miner (minus the 2% donation). No payout logic required on the pool side.
+
+`btcaddress` in `ckpool.conf` is the **pool operator's** address (receives the donation).
+Miners authenticate with: `username = their PLM address`, `password = anything`.
+
+This is the default — the image CMD already includes `-B`.
+
+#### Private pool mode
+
+All block rewards go to the pool's `btcaddress`. The pool operator is responsible for tracking shares and distributing payouts. ckpool records per-miner share stats in `logs/users/`.
+
+Set `btcaddress` to the **pool's** PLM address. Miners still authenticate with their own address as username for share tracking.
+
+To switch to pool mode, override the command in `docker-compose.yml`:
+
+```yaml
+services:
+  ckpool:
+    command: ["-c", "/etc/ckpool/ckpool.conf"]  # no -B flag
+```
+
+### Start
+
+```bash
+docker compose build
+docker compose up -d
+
+# Check logs
+docker logs -f ckpool
+```
+
+### Exposed ports
+
+| Port | Use |
+|------|-----|
+| `3333` | Stratum standard (variable difficulty) |
+| `4444` | Stratum high-diff (high-hashrate ASICs) |
+
+### Logs
+
+Logs are written to `./logs/` and are readable from the host and other containers:
+
+```
+logs/ckpool.log       # main log
+logs/pool/pool.status # pool statistics
+logs/users/           # per-miner address statistics
+```
+
+To read them from another container, add to its compose file:
+
+```yaml
+volumes:
+  - /path/to/ckpool-palladium/logs:/ckpool-logs:ro
+```
+
+---
+
+## Quick Start (without Docker)
 
 ### Prerequisites
 
@@ -59,64 +167,64 @@ sudo make install
 
 ### Configuration
 
-Create a `ckpool.conf` file:
+> **Note**: `ckpool.conf` in this repo is pre-configured for Docker. For native use, copy this config instead:
 
 ```json
 {
   "btcd": [{
-    "url": "127.0.0.1:<rpcport>",
+    "url": "127.0.0.1:2332",
     "auth": "<rpcuser>",
     "pass": "<rpcpassword>",
     "notify": true
   }],
-  "btcaddress" : "plm1qdq3gu2zvg9lyr8gxd6yln4wavc5tlp8prmvfay",
-  "btcsig" : "/mined by ckpool-plm/",
-  "blockpoll" : 100,
-  "donation" : 2.0,
-  "nonce1length" : 4,
-  "nonce2length" : 8,
-  "update_interval" : 30,
-  "version_mask" : "1fffe000",
-  "dropidle" : 0,
-  "serverurl" : ["0.0.0.0:3333"],
-  "nodeserver" : ["ckpool.org:3335"],
-  "trusted" : ["ckpool.org:3336"],
-  "mindiff" : 1,
-  "startdiff" : 42,
-  "maxdiff" : 0,
-  "zmqblock" : "tcp://127.0.0.1:28332",
-  "logdir" : "logs"
+  "btcaddress": "<your PLM address>",
+  "btcsig": "/mined by ckpool-plm/",
+  "blockpoll": 100,
+  "donation": 2.0,
+  "nonce1length": 4,
+  "nonce2length": 8,
+  "update_interval": 30,
+  "version_mask": "1fffe000",
+  "dropidle": 0,
+  "serverurl": ["0.0.0.0:3333", "0.0.0.0:4444"],
+  "mindiff": 1,
+  "startdiff": 42,
+  "maxdiff": 0,
+  "highdiff": 100000,
+  "zmqblock": "tcp://127.0.0.1:28332",
+  "logdir": "logs"
 }
 ```
 
+- `btcd.url` / `zmqblock`: use `127.0.0.1` to connect to a locally running `palladiumd`
+- `btcaddress`: your PLM address (solo mode) or the pool's address (pool mode)
+- `logdir`: relative path — logs are written to `./logs/` relative to where you run ckpool
+
 ### Running
 
-**Important**: This Palladium fork currently supports **standard pool mode only** using `ckpool.conf`. Other modes (proxy, node, passthrough, redirector) are available in the original ckpool but not yet adapted for Palladium.
+> **Note on other modes**: proxy, node, passthrough, and redirector modes are available in upstream ckpool but not yet adapted for Palladium. Only solo and pool modes are supported.
 
-**Supported Modes:**
+#### Solo mode
 
-**1. Solo Mining Mode** (Recommended for individual miners)
+Each miner mines to their own PLM address. Block rewards go directly to the miner. No payout system needed.
+
+Set `btcaddress` to the **pool operator's** address (donation recipient).
+Miners connect with: `username = their PLM address`, `password = anything`.
+
 ```bash
 ./ckpool -B -c ckpool.conf
 ```
-- **What it does**: You mine directly to your own Palladium address
-- **When to use**: Mining alone, keeping 100% of block rewards (minus 2% donation)
-- **Requirements**: Running Palladium daemon (palladiumd) locally
 
-**2. Pool Mode** (For running a public pool)
+#### Private pool mode
+
+All block rewards go to the pool's `btcaddress`. ckpool tracks shares per miner in `logs/users/`. The pool operator handles payouts.
+
+Set `btcaddress` to the **pool's** PLM address.
+Miners connect with: `username = their PLM address` (for share tracking), `password = anything`.
+
 ```bash
 ./ckpool -c ckpool.conf
 ```
-- **What it does**: Runs a mining pool that accepts connections from multiple miners
-- **When to use**: You want to operate a public Palladium mining pool
-- **Requirements**: Running Palladium daemon locally, public IP address
-
-**Note on Other Modes:**
-- **Proxy mode** (`-p`): Not yet adapted for Palladium
-- **Node mode** (`-N`): Not yet adapted for Palladium
-- **Passthrough mode**: Not yet adapted for Palladium
-
-These modes may be added in future releases. For now, use the standard pool configuration with either solo (`-B`) or pool mode.
 
 ## Mining Client Configuration
 
