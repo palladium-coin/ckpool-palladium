@@ -1,4 +1,6 @@
-# ckpool-palladium
+# poolladium
+
+A Palladium-focused fork of ckpool.
 
 Ultra-low overhead mining pool for Palladium (PLM) cryptocurrency. Built on ckpool's proven architecture with SHA256 support, multi-process design, and Stratum v1 protocol. Features efficient share validation, variable difficulty adjustment, and ZMQ block notifications. Optimized for scalability and minimal latency.
 
@@ -131,7 +133,7 @@ To read them from another container, add to its compose file:
 
 ```yaml
 volumes:
-  - /path/to/ckpool-palladium/logs:/ckpool-logs:ro
+  - /path/to/poolladium/logs:/ckpool-logs:ro
 ```
 
 ---
