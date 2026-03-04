@@ -308,7 +308,7 @@ retry:
 			goto living;
 		}
 	}
-	LOGWARNING("CRITICAL: No bitcoinds active!");
+	LOGWARNING("CRITICAL: No palladiumd active!");
 	sleep(5);
 	goto retry;
 living:
