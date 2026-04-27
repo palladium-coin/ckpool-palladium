@@ -18,3 +18,8 @@ services:
     volumes:
       - ./ckpool.conf:/etc/ckpool/ckpool.conf:ro
       - ./logs:/var/log/ckpool
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "10"
