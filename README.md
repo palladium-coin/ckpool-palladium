@@ -32,12 +32,12 @@ This project is a fork of [ckpool](https://bitbucket.org/ckolivas/ckpool) by Con
 
 ## Docker (with palladium-stack)
 
-This is the recommended setup. The pool runs in a container attached to the `palladium-net` Docker network created by [palladium-stack](https://github.com/palladium-coin/palladium-stack), which already provides the node (`palladiumd`), ElectrumX, and the dashboard.
+This is the recommended setup. The pool runs in a container attached to the `palladium` Docker network created by [palladium-stack](https://github.com/palladium-coin/palladium-stack), which already provides the node (`palladiumd`), ElectrumX, and the dashboard.
 
 ### Prerequisites
 
 - [palladium-stack](https://github.com/palladium-coin/palladium-stack) running and synced
-- `palladium-net` Docker network active (`docker network ls | grep palladium-net`)
+- `palladium` Docker network active (`docker network ls | grep palladium`)
 
 ### Configuration
 

@@ -1,5 +1,5 @@
 networks:
-  palladium-net:
+  palladium:
     external: true
 
 services:
@@ -11,7 +11,7 @@ services:
     container_name: ckpool
     restart: unless-stopped
     networks:
-      - palladium-net
+      - palladium
     ports:
       - "0.0.0.0:3333:3333"  # Stratum standard
       - "0.0.0.0:4444:4444"  # Stratum high-diff
